@@ -6,7 +6,6 @@ import click
 
 ROWS = 4
 COLS = 4
-PRINT_WIDTH = 40
 
 CLASSIC_CONFIG = [
     "AACIOT",
@@ -116,13 +115,14 @@ class GetNeighbors:
         self.active_path = set()
 
     def __call__(self, row, col, current_path):
+        used_cells = set(current_path)
         if self.mixed_direction:
             yield from (
                 (r, c)
                 for r, c in itertools.product(
                     range(row - 1, row + 2), range(col - 1, col + 2)
                 )
-                if 0 <= r < ROWS and 0 <= c < COLS and (r, c) not in current_path
+                if 0 <= r < ROWS and 0 <= c < COLS and (r, c) not in used_cells
             )
         else:
             if self.diagonal_only:
@@ -131,7 +131,7 @@ class GetNeighbors:
                     for r, c in itertools.product(
                         (row - 1, row + 1), (col - 1, col + 1)
                     )
-                    if 0 <= r < ROWS and 0 <= c < COLS and (r, c) not in current_path
+                    if 0 <= r < ROWS and 0 <= c < COLS and (r, c) not in used_cells
                 )
             else:
                 yield from (
@@ -142,7 +142,7 @@ class GetNeighbors:
                         (row + 1, col),
                         (row, col + 1),
                     ]
-                    if 0 <= r < ROWS and 0 <= c < COLS and (r, c) not in current_path
+                    if 0 <= r < ROWS and 0 <= c < COLS and (r, c) not in used_cells
                 )
 
 
@@ -155,7 +155,6 @@ class BoggleSolver:
             self.cubes.append(list(letters[i : i + COLS]))
         self.dictionary = dictionary
         self.words = set()
-        self.result_line_width = PRINT_WIDTH
 
     def __repr__(self):
         return "\n".join(
@@ -171,9 +170,10 @@ class BoggleSolver:
     def dfs(self, get_neighbors_fn, row, col, current_path, prefix):
         for nbr_r, nbr_c in get_neighbors_fn(row, col, current_path):
             new_prefix = prefix + self.cubes[nbr_r][nbr_c]
-            if self.dictionary.is_valid(new_prefix):
+            if self.dictionary.is_valid(new_prefix) and new_prefix not in self.words:
                 self.words.add(new_prefix)
-            self.dfs(
+                yield new_prefix
+            yield from self.dfs(
                 get_neighbors_fn,
                 nbr_r,
                 nbr_c,
@@ -181,9 +181,9 @@ class BoggleSolver:
                 new_prefix,
             )
 
-    def find_words(self, mix=False):
+    def find_words(self, mixed_direction=False):
         get_neighbors_fns = []
-        if mix:
+        if mixed_direction:
             get_neighbors_fns = [
                 GetNeighbors(mixed=True),
             ]
@@ -193,29 +193,37 @@ class BoggleSolver:
                 GetNeighbors(mixed=False, diag=True),
             ]
 
-        for row in range(4):
-            for col in range(4):
+        for row in range(ROWS):
+            for col in range(COLS):
                 for fn in get_neighbors_fns:
-                    self.dfs(fn, row, col, [(row, col)], self.cubes[row][col])
+                    yield from self.dfs(
+                        fn, row, col, [(row, col)], self.cubes[row][col]
+                    )
 
-        return sorted(self.words)
-
-    def show_results(self, verbose, capitalize):
+    def show_results(self, verbose, capitalize, mixed_direction=False, print_width=40):
         def transform(w):
-            return word.title() if capitalize else word
+            return w.title() if capitalize else w
 
         if verbose:
             print(self)
             print(self.details())
-        print(f"[found: {len(self.words)}]")
-        line = ""
-        for word in sorted(self.words):
-            if len(line) + len(word) + 2 > self.result_line_width:
-                print(line + ",")
-                line = transform(word)
-            else:
-                line = f"{line}, {transform(word)}" if line else transform(word)
-        print(line)
+
+        word_count = 0
+        line_length = 0
+        for word in self.find_words(mixed_direction=mixed_direction):
+            word_count += 1
+
+            if print_width <= 0:  # print each word in new line
+                print(f"{transform(word)}", flush=True)
+                continue
+
+            if line_length + len(word) + 2 > print_width:
+                print(flush=True)
+                line_length = 0
+            line_length += len(word)
+            print(f"{transform(word)}, ", end="", flush=True)
+
+        print(f"\n[found: {word_count}]", flush=True)
 
 
 def get_boggle_cubes(prefix="", ordered=False, generate_random=True, classic=False):
@@ -262,6 +270,11 @@ def cli():
     help="Provide dictionary language code for system library",
 )
 @click.option(
+    "--mixed",
+    is_flag=True,
+    help="Mixed direction, can navigate diagonally as well as sideways, up down",
+)
+@click.option(
     "--word-min-length",
     default=3,
     help="Minimum length of valid word",
@@ -270,13 +283,25 @@ def cli():
 @click.option(
     "-C", "--capitalize", is_flag=True, help="Print words in capitalized form"
 )
-def solve(letters, dfile, dwords, dlang, word_min_length, verbose, capitalize):
+@click.option(
+    "--wrap-length", type=int, default=40, help="Word wrap when printing result"
+)
+def solve(
+    letters,
+    dfile,
+    dwords,
+    dlang,
+    mixed,
+    word_min_length,
+    verbose,
+    capitalize,
+    wrap_length,
+):
     dictionary = Dictionary(
         word_file=dfile, words=dwords, lang=dlang, word_min_length=word_min_length
     )
     game = BoggleSolver(letters, dictionary)
-    game.find_words()
-    game.show_results(verbose, capitalize)
+    game.show_results(verbose, capitalize, mixed, wrap_length)
 
 
 @cli.command()
