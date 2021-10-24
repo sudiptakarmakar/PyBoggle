@@ -168,7 +168,7 @@ class BoggleSolver:
     def details(self):
         return repr(self.dictionary)
 
-    def dfs(self, get_neighbors_fn, row, col, current_path, prefix, depth=0):
+    def dfs(self, get_neighbors_fn, row, col, current_path, prefix):
         for nbr_r, nbr_c in get_neighbors_fn(row, col, current_path):
             new_prefix = prefix + self.cubes[nbr_r][nbr_c]
             if self.dictionary.is_valid(new_prefix):
@@ -179,7 +179,6 @@ class BoggleSolver:
                 nbr_c,
                 current_path + [(nbr_r, nbr_c)],
                 new_prefix,
-                depth + 1,
             )
 
     def find_words(self, mix=False):
