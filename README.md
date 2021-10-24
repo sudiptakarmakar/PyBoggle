@@ -82,7 +82,7 @@ zen, zens, med, eds, ens, gnu, new, wen, wens,
 [found: 9]
 ```
 
-If you want to see more details, for example, the game board layout, the dictionary being used to calidate words etc, add `--verbose`/`-v` flag:
+If you want to see more details, for example, the game board layout, the dictionary being used to validate words etc, add `--verbose`/`-v` flag:
 
 ```bash
 $ python3 src/boggle/app.py solve olqprzmxsdekgnuw -v
@@ -108,7 +108,7 @@ zen, zens, med, eds, ens, gnu, new, wen, wens,
 [found: 9]
 ```
 
-You can pass your own list of words in a file as a dictionary as well. Just pass the filename with flag `--dict-file`/`-d`:
+You can pass your own list of words in a file (each word in its own line) as a dictionary as well. Just pass the filename with flag `--dict-file`/`-d`:
 
 ```bash
 $ python3 src/boggle/app.py solve olqprzmxsdekgnuw -v -d data/dictionary/unix-words.txt
