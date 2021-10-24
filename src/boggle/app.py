@@ -67,7 +67,7 @@ def get_boggle_board(letters: list[str]) -> str:
 │          │          │          │          │
 └───────────────────────────────────────────┘
 """
-    return template.strip().format(*cubes), "".join(letters[:16])
+    return template.strip().format(*cubes), ("".join(letters[:16])).lower()
 
 
 class Dictionary:
