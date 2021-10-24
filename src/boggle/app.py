@@ -48,7 +48,8 @@ NEW_CONFIG = [
 
 def get_boggle_board(letters: list[str]) -> str:
     cubes = [f"{i.title():>2}" if i.lower() != "q" else "Qu" for i in letters]
-    template = """┌───────────────────────────────────────────┐
+    template = """
+┌───────────────────────────────────────────┐
 │          │          │          │          │
 │    {}    │    {}    │    {}    │    {}    │
 │          │          │          │          │
@@ -64,8 +65,9 @@ def get_boggle_board(letters: list[str]) -> str:
 │          │          │          │          │
 │    {}    │    {}    │    {}    │    {}    │
 │          │          │          │          │
-└───────────────────────────────────────────┘"""
-    return template.format(*cubes), "".join(letters[:16])
+└───────────────────────────────────────────┘
+"""
+    return template.strip().format(*cubes), "".join(letters[:16])
 
 
 class Dictionary:
